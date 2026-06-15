@@ -15,44 +15,13 @@ import {
   Package,
   TrendingUp
 } from 'lucide-react';
-
-interface Gig {
-  id: string;
-  mistriId: string;
-  title: string;
-  category: string;
-  description: string;
-  images: string[];
-  packages: {
-    basic: { price: number; deliveryDays: number; description: string; };
-    standard?: { price: number; deliveryDays: number; description: string; };
-    premium?: { price: number; deliveryDays: number; description: string; };
-  };
-  rating: number;
-  reviews: number;
-  orders: number;
-  active: boolean;
-  createdAt: string;
-}
-
-interface Order {
-  id: string;
-  gigId: string;
-  gigTitle: string;
-  clientId: string;
-  clientName: string;
-  package: 'basic' | 'standard' | 'premium';
-  price: number;
-  status: 'pending' | 'active' | 'delivered' | 'completed' | 'cancelled';
-  deliveryDate: string;
-  createdAt: string;
-}
+import api from '@/lib/api';
 
 const MistriDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [gigs, setGigs] = useState<Gig[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [gigs, setGigs] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
     activeOrders: 0,
     totalEarnings: 0,
@@ -69,38 +38,37 @@ const MistriDashboard: React.FC = () => {
     loadDashboardData();
   }, [user]);
 
-  const loadDashboardData = () => {
-    // Load Mistri's gigs
-    const allGigs = JSON.parse(localStorage.getItem('gigs') || '[]');
-    const myGigs = allGigs.filter((g: Gig) => g.mistriId === user?.id);
-    setGigs(myGigs);
+  const loadDashboardData = async () => {
+    try {
+      // Load mistri's gigs from API
+      const { data: myGigs } = await api.get('/gigs/my');
+      setGigs(myGigs);
 
-    // Load orders
-    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const myOrders = allOrders.filter((o: Order) => {
-      const gig = allGigs.find((g: Gig) => g.id === o.gigId);
-      return gig?.mistriId === user?.id;
-    });
-    setOrders(myOrders);
+      // Load mistri's orders from API
+      const { data: myOrders } = await api.get('/orders/my');
+      setOrders(myOrders);
 
-    // Calculate stats
-    const activeOrders = myOrders.filter((o: Order) => 
-      o.status === 'active' || o.status === 'pending'
-    ).length;
+      // Calculate stats
+      const activeOrders = myOrders.filter((o: any) =>
+        o.status === 'active' || o.status === 'pending'
+      ).length;
 
-    const completedOrders = myOrders.filter((o: Order) => o.status === 'completed');
-    const totalEarnings = completedOrders.reduce((sum: number, o: Order) => sum + o.price, 0);
+      const completedOrders = myOrders.filter((o: any) => o.status === 'completed');
+      const totalEarnings = completedOrders.reduce((sum: number, o: any) => sum + o.price, 0);
 
-    const deliveredOrders = myOrders.filter((o: Order) => o.status === 'delivered');
-    const pendingEarnings = deliveredOrders.reduce((sum: number, o: Order) => sum + o.price, 0);
+      const deliveredOrders = myOrders.filter((o: any) => o.status === 'delivered');
+      const pendingEarnings = deliveredOrders.reduce((sum: number, o: any) => sum + o.price, 0);
 
-    setStats({
-      activeOrders,
-      totalEarnings,
-      pendingEarnings,
-      availableBalance: totalEarnings - pendingEarnings,
-      totalGigs: myGigs.length
-    });
+      setStats({
+        activeOrders,
+        totalEarnings,
+        pendingEarnings,
+        availableBalance: totalEarnings - pendingEarnings,
+        totalGigs: myGigs.length
+      });
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -204,13 +172,15 @@ const MistriDashboard: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Create your first service to start receiving orders
                   </p>
-                  <Button onClick={() => navigate('/create-gig')}>Create Your First Service</Button>
+                  <Button onClick={() => navigate('/create-gig')}>
+                    Create Your First Service
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {gigs.map((gig) => (
-                  <Card key={gig.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={gig._id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{gig.title}</CardTitle>
@@ -248,7 +218,7 @@ const MistriDashboard: React.FC = () => {
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-4">
             <h2 className="text-2xl font-semibold">Orders</h2>
-            
+
             {orders.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
@@ -262,21 +232,20 @@ const MistriDashboard: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {orders.map((order) => (
-                  <Card key={order.id}>
+                  <Card key={order._id}>
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">{order.gigTitle}</h3>
+                          <h3 className="text-lg font-semibold">
+                            {order.gigId?.title || 'Service'}
+                          </h3>
                           <p className="text-sm text-muted-foreground">
-                            Client: {order.clientName}
+                            Client: {order.clientId?.name || 'Unknown'}
                           </p>
                           <div className="flex items-center gap-3">
                             <Badge className={getStatusColor(order.status)}>
                               {order.status}
                             </Badge>
-                            <span className="text-sm">
-                              Package: {order.package}
-                            </span>
                             <span className="text-sm font-semibold text-green-600">
                               {order.price} PKR
                             </span>
@@ -300,7 +269,7 @@ const MistriDashboard: React.FC = () => {
           {/* Earnings Tab */}
           <TabsContent value="earnings" className="space-y-4">
             <h2 className="text-2xl font-semibold">Earnings</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>

@@ -3,10 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
-import { initializeGigs } from "./data/initialGigs";
-import { initializeUsers } from "./data/initialUsers";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -28,11 +25,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useEffect(() => {
-    // Initialize gigs and users data on app load
-    initializeGigs();
-    initializeUsers();
-  }, []);
+ 
 
   return (
     <QueryClientProvider client={queryClient}>

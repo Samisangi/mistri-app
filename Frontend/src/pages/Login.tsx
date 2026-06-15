@@ -24,73 +24,57 @@ const Login: React.FC = () => {
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (isLogin) {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        toast({
-          title: "Login Successful!",
-          description: "Welcome back to Mistri Ghar Tak",
-        });
-        
-        // Get user data to determine redirect
-        const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          // Redirect based on role
-          if (user.role === 'mistri') {
-            navigate('/mistri-dashboard');
-          } else if (user.role === 'client') {
-            navigate('/gigs');
-          } else if (user.role === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/');
-          }
-        } else {
-          navigate('/');
-        }
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
+  if (isLogin) {
+    const success = await login(formData.email, formData.password);
+    if (success) {
+      toast({
+        title: "Login Successful!",
+        description: "Welcome back to Mistri Ghar Tak",
+      });
+
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        if (user.role === 'mistri') navigate('/mistri-dashboard');
+        else if (user.role === 'client') navigate('/gigs');
+        else if (user.role === 'admin') navigate('/admin');
+        else navigate('/');
       }
     } else {
-      const success = await signup(
-        formData.email,
-        formData.password,
-        formData.name,
-        formData.role,
-        formData.phone
-      );
-      
-      if (success) {
-        toast({
-          title: "Account Created!",
-          description: "Your account has been created successfully",
-        });
-        
-        // Redirect based on role after signup
-        if (formData.role === 'mistri') {
-          navigate('/mistri-dashboard');
-        } else if (formData.role === 'client') {
-          navigate('/gigs');
-        } else {
-          navigate('/');
-        }
-      } else {
-        toast({
-          title: "Signup Failed",
-          description: "Email already exists or invalid data",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
     }
-  };
+  } else {
+    const success = await signup(
+      formData.email,
+      formData.password,
+      formData.name,
+      formData.role,
+      formData.phone
+    );
 
+    if (success) {
+      toast({
+        title: "Account Created!",
+        description: "Your account has been created successfully",
+      });
+      if (formData.role === 'mistri') navigate('/mistri-dashboard');
+      else if (formData.role === 'client') navigate('/gigs');
+      else navigate('/');
+    } else {
+      toast({
+        title: "Signup Failed",
+        description: "Email already exists or invalid data",
+        variant: "destructive",
+      });
+    }
+  }
+};
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-primary/5 to-secondary/5">
       <Card className="w-full max-w-md shadow-2xl">
