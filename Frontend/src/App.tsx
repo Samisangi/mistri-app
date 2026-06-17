@@ -8,6 +8,8 @@ import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
+import EditGig from "./pages/EditGig";
+
 import Services from "./pages/Services";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -78,6 +80,8 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
+                <Route path="/edit-gig/:id" element={<ProtectedRoute allowedRoles={['mistri']}><EditGig /></ProtectedRoute>} />
+
                 <Route 
                   path="/contact" 
                   element={

@@ -204,8 +204,10 @@ const MistriDashboard: React.FC = () => {
                           <span>Starting at {gig.packages.basic.price} PKR</span>
                         </div>
                         <div className="flex gap-2 mt-4">
-                          <Button size="sm" variant="outline" className="flex-1">Edit</Button>
-                          <Button size="sm" variant="outline" className="flex-1">View</Button>
+// Replace the Edit button:
+<Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/edit-gig/${gig._id}`)}>
+  Edit
+</Button>                          <Button size="sm" variant="outline" className="flex-1">View</Button>
                         </div>
                       </div>
                     </CardContent>
