@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Package, MessageSquare, Upload, Check, AlertCircle } from 'lucide-react';
+import { Package, Clock, MessageSquare, Upload, Check, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 
 const Orders: React.FC = () => {
@@ -47,18 +48,28 @@ const Orders: React.FC = () => {
 
   const handleAcceptOrder = async (orderId: string) => {
     const success = await updateOrderStatus(orderId, 'active');
-    if (success) toast({ title: "Order Accepted!" });
+    if (success) toast({ title: "Order Confirmed!", description: "You can now start working on this order" });
   };
 
-  const handleDeliverOrder = async (orderId: string) => {
+  const handleDeliverOrder = async (orderId: string, deliveryNote: string) => {
     const success = await updateOrderStatus(orderId, 'delivered');
-    if (success) toast({ title: "Work Delivered!" });
+    if (success) toast({ title: "Work Delivered!", description: "Waiting for client approval" });
+  };
+
+  const handleApproveDelivery = async (orderId: string) => {
+    const success = await updateOrderStatus(orderId, 'completed');
+    if (success) toast({ title: "Order Completed!", description: "Payment has been released to the Mistri" });
+  };
+
+  const handleRequestRevision = async (orderId: string) => {
+    const success = await updateOrderStatus(orderId, 'revision');
+    if (success) toast({ title: "Revision Requested", description: "The Mistri has been notified" });
   };
 
   const handleCancelOrder = async (orderId: string) => {
     try {
       await api.put(`/orders/${orderId}/cancel`);
-      toast({ title: "Order Cancelled" });
+      toast({ title: "Order Cancelled", description: "The order has been cancelled" });
       loadOrders();
     } catch (error: any) {
       toast({
@@ -67,16 +78,6 @@ const Orders: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
-
-  const handleApproveDelivery = async (orderId: string) => {
-    const success = await updateOrderStatus(orderId, 'completed');
-    if (success) toast({ title: "Order Completed!" });
-  };
-
-  const handleRequestRevision = async (orderId: string) => {
-    const success = await updateOrderStatus(orderId, 'revision');
-    if (success) toast({ title: "Revision Requested" });
   };
 
   const getStatusColor = (status: string) => {
@@ -101,29 +102,56 @@ const Orders: React.FC = () => {
   const isMistri = user?.role === 'mistri';
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto max-w-6xl">
+    <div className="min-h-screen bg-background py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">
+            {isMistri ? 'My Orders' : 'My Purchases'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isMistri ? 'Manage orders from clients' : 'Track your orders'}
+          </p>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+            <TabsTrigger value="active">
+              Active ({orders.filter(o => ['pending', 'active', 'delivered', 'revision'].includes(o.status)).length})
+            </TabsTrigger>
+            <TabsTrigger value="completed">
+              Completed ({orders.filter(o => o.status === 'completed').length})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled">
+              Cancelled ({orders.filter(o => o.status === 'cancelled').length})
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value={activeTab}>
-            {filteredOrders.map(order => (
-              <OrderCard
-                key={order._id}
-                order={order}
-                isMistri={isMistri}
-                onAccept={handleAcceptOrder}
-                onDeliver={handleDeliverOrder}
-                onApprove={handleApproveDelivery}
-                onRevision={handleRequestRevision}
-                onCancel={handleCancelOrder}   // ✅ PASSED
-                getStatusColor={getStatusColor}
-              />
-            ))}
+          <TabsContent value={activeTab} className="mt-6 space-y-6">
+            {filteredOrders.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No Orders</h3>
+                  {!isMistri && activeTab === 'active' && (
+                    <Button onClick={() => navigate('/gigs')}>Find Mistris</Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              filteredOrders.map(order => (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  isMistri={isMistri}
+                  onAccept={handleAcceptOrder}
+                  onDeliver={handleDeliverOrder}
+                  onApprove={handleApproveDelivery}
+                  onRevision={handleRequestRevision}
+                  onCancel={handleCancelOrder}
+                  getStatusColor={getStatusColor}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -135,53 +163,183 @@ const OrderCard: React.FC<{
   order: any;
   isMistri: boolean;
   onAccept: (id: string) => void;
-  onDeliver: (id: string) => void;
+  onDeliver: (id: string, note: string) => void;
   onApprove: (id: string) => void;
   onRevision: (id: string) => void;
   onCancel: (id: string) => void;
   getStatusColor: (status: string) => string;
-}> = ({
-  order,
-  isMistri,
-  onAccept,
-  onDeliver,
-  onApprove,
-  onRevision,
-  onCancel,   // ✅ FIXED HERE
-  getStatusColor
-}) => {
+}> = ({ order, isMistri, onAccept, onDeliver, onApprove, onRevision, onCancel, getStatusColor }) => {
+  const navigate = useNavigate();
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [revisionNote, setRevisionNote] = useState('');
 
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="flex gap-4">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Gig Image */}
+          <div className="w-full lg:w-48 h-32 flex-shrink-0">
+            {order.gigId?.images?.[0] ? (
+              <img src={order.gigId.images[0]} alt={order.gigId?.title} className="w-full h-full object-cover rounded-lg" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg flex items-center justify-center">
+                <Package className="w-12 h-12 text-muted-foreground" />
+              </div>
+            )}
+          </div>
 
-          <div className="flex-1">
-            <h3>{order.gigId?.title}</h3>
-            <Badge className={getStatusColor(order.status)}>
-              {order.status}
-            </Badge>
+          {/* Order Details */}
+          <div className="flex-1 space-y-4">
+            <div>
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-semibold">{order.gigId?.title || 'Service'}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isMistri ? `Client: ${order.clientId?.name}` : `Mistri: ${order.mistriId?.name}`}
+                  </p>
+                </div>
+                <Badge className={getStatusColor(order.status)}>
+                  {order.status}
+                </Badge>
+              </div>
 
-            <div className="flex gap-2 mt-4">
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-primary" />
+                  <span>Package: {order.packageType || 'basic'}</span>
+                </div>
+                <div className="font-semibold text-green-600">
+                  {order.price?.toLocaleString()} PKR
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  Payment: {order.paymentStatus === 'unpaid' ? '🔒 Unpaid' : order.paymentStatus === 'paid' ? '✅ Paid' : '↩️ Refunded'}
+                </div>
+              </div>
+            </div>
 
+            {/* Address / Notes if present */}
+            {order.address && (
+              <p className="text-sm text-muted-foreground">📍 {order.address}</p>
+            )}
+            {order.notes && (
+              <p className="text-sm text-muted-foreground">📝 {order.notes}</p>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-3">
+              {/* Mistri: Confirm pending order */}
+              {isMistri && order.status === 'pending' && (
+                <Button onClick={() => onAccept(order._id)} size="sm">
+                  <Check className="w-4 h-4 mr-1" />
+                  Confirm Order
+                </Button>
+              )}
+
+              {/* Mistri: Deliver work once active */}
+              {isMistri && order.status === 'active' && !showDeliveryForm && (
+                <Button onClick={() => setShowDeliveryForm(true)} size="sm" className="bg-secondary">
+                  <Upload className="w-4 h-4 mr-1" />
+                  Deliver Work
+                </Button>
+              )}
+
+              {isMistri && order.status === 'revision' && !showDeliveryForm && (
+                <Button onClick={() => setShowDeliveryForm(true)} size="sm" variant="outline">
+                  <Upload className="w-4 h-4 mr-1" />
+                  Submit Revision
+                </Button>
+              )}
+
+              {/* Client: Approve delivered work */}
+              {!isMistri && order.status === 'delivered' && (
+                <>
+                  <Button onClick={() => onApprove(order._id)} size="sm">
+                    <Check className="w-4 h-4 mr-1" />
+                    Confirm & Release Payment
+                  </Button>
+                  <Button onClick={() => setShowRevisionForm(true)} size="sm" variant="outline">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    Request Revision
+                  </Button>
+                </>
+              )}
+
+              {/* Cancel - available to both client and mistri */}
               {!['completed', 'cancelled'].includes(order.status) && (
                 <Button
                   onClick={() => {
-                    if (window.confirm("Cancel order?")) {
-                      onCancel(order._id);   // ✅ NOW WORKS
+                    if (confirm('Are you sure you want to cancel this order?')) {
+                      onCancel(order._id);
                     }
                   }}
+                  size="sm"
                   variant="destructive"
                 >
                   Cancel Order
                 </Button>
               )}
 
-              <Button variant="ghost">
-                <MessageSquare className="w-4 h-4" />
+              <Button size="sm" variant="ghost" onClick={() => navigate('/messages')}>
+                <MessageSquare className="w-4 h-4 mr-1" />
+                Message
               </Button>
-
             </div>
+
+            {/* Delivery Form */}
+            {showDeliveryForm && (
+              <div className="bg-muted p-4 rounded-lg space-y-3">
+                <Textarea
+                  placeholder="Describe what you've delivered..."
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      onDeliver(order._id, deliveryNote);
+                      setShowDeliveryForm(false);
+                      setDeliveryNote('');
+                    }}
+                    size="sm"
+                  >
+                    Submit Delivery
+                  </Button>
+                  <Button onClick={() => setShowDeliveryForm(false)} size="sm" variant="outline">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Revision Form */}
+            {showRevisionForm && (
+              <div className="bg-muted p-4 rounded-lg space-y-3">
+                <Textarea
+                  placeholder="Describe what needs to be revised..."
+                  value={revisionNote}
+                  onChange={(e) => setRevisionNote(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      onRevision(order._id);
+                      setShowRevisionForm(false);
+                      setRevisionNote('');
+                    }}
+                    size="sm"
+                  >
+                    Request Revision
+                  </Button>
+                  <Button onClick={() => setShowRevisionForm(false)} size="sm" variant="outline">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

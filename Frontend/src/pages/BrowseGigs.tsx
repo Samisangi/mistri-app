@@ -10,7 +10,23 @@ import api from '@/lib/api';
 
 interface Gig {
   _id: string;
-  mistriId: string;
+  mistriId:
+  {
+    _id: string;
+    name: string;
+    avatar?: string;
+    rating?: number;
+  }; 
+
+
+
+
+
+
+
+
+
+
   mistriName: string;
   title: string;
   category: string;
@@ -165,11 +181,15 @@ const BrowseGigs: React.FC = () => {
                     <div className="p-4 space-y-3">
                       {/* Mistri Info */}
                       <div className="flex items-center gap-2">
+{gig.mistriId?.avatar ? (
+    <img src={gig.mistriId.avatar} alt={gig.mistriName} className="w-10 h-10 rounded-full object-cover" />
+  ) : (
+                        
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                           <span className="text-xs font-semibold">
                             {gig.mistriName?.charAt(0) || 'M'}
                           </span>
-                        </div>
+                        </div>)}
                         <span className="text-sm font-medium">{gig.mistriName}</span>
                       </div>
 

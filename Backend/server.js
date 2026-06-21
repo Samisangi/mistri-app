@@ -7,6 +7,8 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 dotenv.config();
+console.log('EMAIL_USER loaded:', process.env.EMAIL_USER);
+console.log('EMAIL_PASS loaded:', process.env.EMAIL_PASS ? 'YES (hidden)' : 'NO - MISSING');
 connectDB();
 
 const app = express();
@@ -14,10 +16,12 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: process.env.CLIENT_URL, methods: ['GET', 'POST'] }
 });
+app.set('io', io); // ADD THIS LINE
 
 app.use(cors({ origin: process.env.CLIENT_URL }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/users', require('./routes/users'));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -26,6 +30,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/complaints', require('./routes/complaints'));
 
 // Socket.IO
 io.on('connection', (socket) => {

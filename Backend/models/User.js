@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
   experience: { type: String },
   rating: { type: Number, default: 0 },
   totalReviews: { type: Number, default: 0 },
+  resetPasswordToken: { type: String },
+  resetPasswordExpire: { type: Date },
 }, { timestamps: true });
 
 userSchema.pre('save', async function() {

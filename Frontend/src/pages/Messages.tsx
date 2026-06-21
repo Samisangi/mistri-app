@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, ArrowLeft } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Send } from "lucide-react";
 import { io, Socket } from "socket.io-client";
 import api from "@/lib/api";
 
@@ -20,16 +20,17 @@ const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [unreadByOrder, setUnreadByOrder] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
 
-    // Connect socket
     socketRef.current = io('http://localhost:5000');
 
     loadConversations();
+    loadUnreadCounts();
 
     return () => {
       socketRef.current?.disconnect();
@@ -55,6 +56,7 @@ const Messages = () => {
         order,
         otherUser: {
           name: user?.role === 'client' ? order.mistriId?.name : order.clientId?.name,
+          avatar: user?.role === 'client' ? order.mistriId?.avatar : order.clientId?.avatar,
           role: user?.role === 'client' ? 'Mistri' : 'Client'
         }
       }));
@@ -64,34 +66,37 @@ const Messages = () => {
     }
   };
 
-  // const selectConversation = (conversation: any) => {
-  //   setSelectedConversation(conversation);
-  //   loadMessages(conversation.orderId);
-
-  //   // Join socket room
-  //   socketRef.current?.emit('join_room', conversation.orderId);
-
-  //   // Listen for new messages
-  //   socketRef.current?.off('receive_message');
-  //   socketRef.current?.on('receive_message', (data: any) => {
-  //     setMessages(prev => [...prev, data]);
-  //   });
-  // };
-const selectConversation = (conversation: any) => {
-  setSelectedConversation(conversation);
-  loadMessages(conversation.orderId);
-
-  socketRef.current?.emit('join_room', conversation.orderId);
-
-  socketRef.current?.off('receive_message');
-  socketRef.current?.on('receive_message', (data: any) => {
-    // Only add if message is from someone else
-    const senderId = data.senderId?._id || data.senderId;
-    if (senderId !== user?.id) {
-      setMessages(prev => [...prev, data]);
+  const loadUnreadCounts = async () => {
+    try {
+      const { data } = await api.get('/messages/unread/by-order');
+      const map: Record<string, number> = {};
+      data.forEach((item: any) => { map[item._id] = item.count; });
+      setUnreadByOrder(map);
+    } catch (error) {
+      console.error('Error loading unread counts:', error);
     }
-  });
-};
+  };
+
+  const selectConversation = (conversation: any) => {
+    setSelectedConversation(conversation);
+    loadMessages(conversation.orderId);
+
+    api.put(`/messages/${conversation.orderId}/read`).then(() => {
+      setUnreadByOrder(prev => ({ ...prev, [conversation.orderId]: 0 }));
+    });
+
+    socketRef.current?.emit('join_room', conversation.orderId);
+
+    socketRef.current?.off('receive_message');
+    socketRef.current?.on('receive_message', (data: any) => {
+      const senderId = data.senderId?._id || data.senderId;
+      if (senderId !== user?.id) {
+        setMessages(prev => [...prev, data]);
+        api.put(`/messages/${conversation.orderId}/read`);
+      }
+    });
+  };
+
   const loadMessages = async (orderId: string) => {
     try {
       const { data } = await api.get(`/messages/${orderId}`);
@@ -101,57 +106,31 @@ const selectConversation = (conversation: any) => {
     }
   };
 
-//   const sendMessage = async () => {
-//     if (!newMessage.trim() || !selectedConversation || !user) return;
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation || !user) return;
 
-//     try {
-//       const { data } = await api.post('/messages', {
-//         orderId: selectedConversation.orderId,
-//         receiverId: user.role === 'client'
-//           ? selectedConversation.order.mistriId?._id
-//           : selectedConversation.order.clientId?._id,
-//         content: newMessage.trim()
-//       });
-// setMessages(prev => [...prev, data]);
-//     setNewMessage('');
-//       // Emit via socket for real-time
-//       socketRef.current?.emit('send_message', {
-//         ...data,
-//         roomId: selectedConversation.orderId
-//       });
+    try {
+      const { data } = await api.post('/messages', {
+        orderId: selectedConversation.orderId,
+        receiverId: user.role === 'client'
+          ? selectedConversation.order.mistriId?._id
+          : selectedConversation.order.clientId?._id,
+        content: newMessage.trim()
+      });
 
-//       setMessages(prev => [...prev, data]);
-//       setNewMessage('');
-//     } catch (error) {
-//       console.error('Error sending message:', error);
-//     }
-//   };
-const sendMessage = async () => {
-  if (!newMessage.trim() || !selectedConversation || !user) return;
+      setMessages(prev => [...prev, data]);
+      setNewMessage('');
 
-  try {
-    const { data } = await api.post('/messages', {
-      orderId: selectedConversation.orderId,
-      receiverId: user.role === 'client'
-        ? selectedConversation.order.mistriId?._id
-        : selectedConversation.order.clientId?._id,
-      content: newMessage.trim()
-    });
+      socketRef.current?.emit('send_message', {
+        ...data,
+        roomId: selectedConversation.orderId
+      });
 
-    // Add message locally ONCE - don't rely on socket for own messages
-    setMessages(prev => [...prev, data]);
-    setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
 
-    // Emit via socket ONLY for the other person to receive
-    socketRef.current?.emit('send_message', {
-      ...data,
-      roomId: selectedConversation.orderId
-    });
-
-  } catch (error) {
-    console.error('Error sending message:', error);
-  }
-};
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
@@ -179,10 +158,16 @@ const sendMessage = async () => {
                   >
                     <div className="flex items-center gap-3">
                       <Avatar>
+                        {conv.otherUser.avatar && <AvatarImage src={conv.otherUser.avatar} />}
                         <AvatarFallback>{conv.otherUser.name?.[0] || '?'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm">{conv.otherUser.name}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-sm">{conv.otherUser.name}</p>
+                          {unreadByOrder[conv.orderId] > 0 && (
+                            <Badge className="bg-red-500 text-white text-xs">{unreadByOrder[conv.orderId]}</Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{conv.order.gigId?.title || 'Service'}</p>
                         <Badge variant="outline" className="text-xs mt-1">{conv.order.status}</Badge>
                       </div>
@@ -199,6 +184,7 @@ const sendMessage = async () => {
               <>
                 <div className="p-4 border-b flex items-center gap-3">
                   <Avatar>
+                    {selectedConversation.otherUser.avatar && <AvatarImage src={selectedConversation.otherUser.avatar} />}
                     <AvatarFallback>{selectedConversation.otherUser.name?.[0] || '?'}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -212,7 +198,13 @@ const sendMessage = async () => {
                     {messages.map((msg, i) => {
                       const isOwn = msg.senderId === user?.id || msg.senderId?._id === user?.id;
                       return (
-                        <div key={i} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        <div key={i} className={`flex gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          {!isOwn && (
+                            <Avatar className="w-6 h-6 mt-1">
+                              {selectedConversation?.otherUser?.avatar && <AvatarImage src={selectedConversation.otherUser.avatar} />}
+                              <AvatarFallback className="text-xs">{selectedConversation?.otherUser?.name?.[0] || '?'}</AvatarFallback>
+                            </Avatar>
+                          )}
                           <div className={`max-w-[70%] rounded-lg p-3 ${isOwn ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
                             <p className="text-sm">{msg.content}</p>
                             <p className="text-xs opacity-70 mt-1">{formatTime(msg.createdAt)}</p>

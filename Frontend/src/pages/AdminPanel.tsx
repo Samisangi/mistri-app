@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Briefcase, Wallet, TrendingUp, Ban, CheckCircle, Search, Shield, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
+import { Textarea } from "@/components/ui/textarea";
+
 
 const AdminPanel = () => {
   const { user } = useAuth();
@@ -17,12 +19,36 @@ const AdminPanel = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [gigs, setGigs] = useState<any[]>([]);
+  const [complaints, setComplaints] = useState<any[]>([]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({
     totalUsers: 0, totalMistris: 0, totalClients: 0,
     totalOrders: 0, completedOrders: 0, totalRevenue: 0,
     platformCommission: 0, totalGigs: 0
   });
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+const [responseText, setResponseText] = useState('');
+
+const handleRespond = async (complaintId: string) => {
+  if (!responseText.trim()) {
+    toast({ title: "Error", description: "Please write a response", variant: "destructive" });
+    return;
+  }
+
+  try {
+    await api.put(`/complaints/${complaintId}/respond`, {
+      adminResponse: responseText,
+      status: 'resolved'
+    });
+    toast({ title: "Response Sent!", description: "The user has been notified" });
+    setRespondingTo(null);
+    setResponseText('');
+    loadAdminData();
+  } catch (error) {
+    toast({ title: "Error", description: "Failed to send response", variant: "destructive" });
+  }
+};
 
   useEffect(() => {
     if (!user || user.role !== 'admin') { navigate('/'); return; }
@@ -31,15 +57,20 @@ const AdminPanel = () => {
 
   const loadAdminData = async () => {
     try {
-      const [usersRes, ordersRes, gigsRes] = await Promise.all([
+
+      const [usersRes, ordersRes, gigsRes,complaintsRes] = await Promise.all([
         api.get('/admin/users'),
         api.get('/admin/orders'),
-        api.get('/gigs')
+        api.get('/gigs'),
+        api.get('/complaints')
       ]);
+
 
       setUsers(usersRes.data);
       setOrders(ordersRes.data);
       setGigs(gigsRes.data);
+          setComplaints(complaintsRes.data);
+
 
       const totalMistris = usersRes.data.filter((u: any) => u.role === 'mistri').length;
       const totalClients = usersRes.data.filter((u: any) => u.role === 'client').length;
@@ -154,6 +185,9 @@ const AdminPanel = () => {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
+             <TabsTrigger value="complaints">
+    Complaints ({complaints.filter(c => c.status === 'open').length})
+  </TabsTrigger>
             <TabsTrigger value="gigs">Gigs</TabsTrigger>
           </TabsList>
 
@@ -170,9 +204,12 @@ const AdminPanel = () => {
                 <div className="space-y-4">
                   {filteredUsers.map((u) => (
                     <div key={u._id} className="flex items-center gap-4 p-4 border rounded-lg">
+                      {u.avatar ? (
+        <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover" />
+              ) : (
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
                         {u.name[0]}
-                      </div>
+                      </div>)}
                       <div className="flex-1">
                         <h3 className="font-semibold">{u.name}</h3>
                         <p className="text-sm text-muted-foreground">{u.email}</p>
@@ -253,6 +290,65 @@ const AdminPanel = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="complaints">
+  <Card>
+    <CardHeader><CardTitle>User Complaints & Support ({complaints.length})</CardTitle></CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {complaints.map((complaint) => (
+          <div key={complaint._id} className="border rounded-lg p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <Badge variant="outline" className="mb-1">{complaint.category}</Badge>
+                <h3 className="font-semibold">{complaint.subject}</h3>
+                <p className="text-sm text-muted-foreground">
+                  From: {complaint.userId?.name || complaint.userName} ({complaint.userRole})
+                </p>
+              </div>
+              <Badge className={
+                complaint.status === 'open' ? 'bg-yellow-500' :
+                complaint.status === 'in_progress' ? 'bg-blue-500' :
+                complaint.status === 'resolved' ? 'bg-green-500' : 'bg-gray-500'
+              }>
+                {complaint.status.replace('_', ' ')}
+              </Badge>
+            </div>
+
+            <p className="text-sm mb-3">{complaint.message}</p>
+
+            {complaint.adminResponse ? (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-primary mb-1">Your Response:</p>
+                <p className="text-sm">{complaint.adminResponse}</p>
+              </div>
+            ) : respondingTo === complaint._id ? (
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="Write your response..."
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleRespond(complaint._id)}>Send Response</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setRespondingTo(null); setResponseText(''); }}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <Button size="sm" onClick={() => setRespondingTo(complaint._id)}>Respond</Button>
+            )}
+          </div>
+        ))}
+
+        {complaints.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No complaints or support messages yet</p>
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
         </Tabs>
       </div>
     </div>

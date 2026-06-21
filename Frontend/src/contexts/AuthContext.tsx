@@ -38,9 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Load user from token on app start
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('currentUser');
+    const token = sessionStorage.getItem('token');
+    const storedUser = sessionStorage.getItem('currentUser');
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -50,8 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data } = await api.post('/auth/login', { email, password });
 
-      // Save token and user
-      localStorage.setItem('token', data.token);
+      sessionStorage.setItem('token', data.token);
 
       const userData: User = {
         id: data._id,
@@ -59,11 +57,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: data.name,
         role: data.role,
         phone: data.phone,
+        profileImage: data.avatar,
         createdAt: data.createdAt || new Date().toISOString()
       };
 
       setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      sessionStorage.setItem('currentUser', JSON.stringify(userData));
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -79,16 +78,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     phone?: string
   ): Promise<boolean> => {
     try {
-      const { data } = await api.post('/auth/register', {
-        email,
-        password,
-        name,
-        role,
-        phone
-      });
+      const { data } = await api.post('/auth/register', { email, password, name, role, phone });
 
-      // Save token and user
-      localStorage.setItem('token', data.token);
+      sessionStorage.setItem('token', data.token);
 
       const userData: User = {
         id: data._id,
@@ -96,11 +88,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: data.name,
         role: data.role,
         phone: data.phone,
+        profileImage: data.avatar,
         createdAt: data.createdAt || new Date().toISOString()
       };
 
       setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      sessionStorage.setItem('currentUser', JSON.stringify(userData));
       return true;
     } catch (error) {
       console.error('Signup error:', error);
@@ -110,26 +103,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('currentUser');
   };
 
   const updateUser = (updates: Partial<User>) => {
     if (!user) return;
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      signup,
-      logout,
-      updateUser,
-      isAuthenticated: !!user
-    }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

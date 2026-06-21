@@ -4,12 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Menu, X, Phone, Mail, MapPin, User, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/mistri-online-logo.png';
+import api from '@/lib/api';
+import { io } from 'socket.io-client';
+import { useToast } from '@/hooks/use-toast';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,10 +25,48 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Poll unread message count
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchUnread = async () => {
+      try {
+        const { data } = await api.get('/messages/unread/count');
+        setUnreadCount(data.count);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Real-time notification via socket
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const socket = io('http://localhost:5000');
+    socket.emit('join_room', user.id);
+
+    socket.on('new_message_notification', (data: any) => {
+      if (data.receiverId === user.id) {
+        toast({
+          title: `New message from ${data.senderName}`,
+          description: data.content,
+        });
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    return () => { socket.disconnect(); };
+  }, [isAuthenticated, user]);
+
   // Navigation based on user role
   const getNavigation = () => {
     if (!user) {
-      // Not logged in - show all public pages
       return [
         { name: 'Home', href: '/' },
         { name: 'Find Mistris', href: '/gigs' },
@@ -34,16 +77,16 @@ const Header: React.FC = () => {
     }
 
     if (user.role === 'mistri') {
-      // Mistri - only dashboard and messages
       return [
         { name: '💼 Dashboard', href: '/mistri-dashboard' },
         { name: '💬 Messages', href: '/messages' },
         { name: '📦 Orders', href: '/orders' },
+            { name: '🆘 Support', href: '/contact-support' },
+
       ];
     }
 
     if (user.role === 'client') {
-      // Client - focused on hiring mistris
       return [
         { name: '🔍 Find Mistris', href: '/gigs' },
         { name: '🛠️ Services', href: '/services' },
@@ -53,7 +96,6 @@ const Header: React.FC = () => {
     }
 
     if (user.role === 'admin') {
-      // Admin - all pages plus admin panel
       return [
         { name: 'Home', href: '/' },
         { name: 'Find Mistris', href: '/gigs' },
@@ -68,7 +110,6 @@ const Header: React.FC = () => {
   };
 
   const fullNavigation = getNavigation();
-
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -77,14 +118,15 @@ const Header: React.FC = () => {
       <div className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground py-2 px-4 text-sm">
         <div className="container mx-auto flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center gap-6">
-            <a 
-              href="tel:+923061217691" 
+            <a
+              href="tel:+923061217691"
               className="flex items-center gap-2 hover:text-secondary transition-colors cursor-pointer hover:scale-105 duration-300"
             >
               <Phone className="w-4 h-4" />
               <span className="font-semibold">+92 306 1217691</span>
-            </a>
-            <a 
+           </a>
+            <a
+            
               href="mailto:info@mistrionline.pk"
               className="hidden md:flex items-center gap-2 hover:text-secondary transition-colors cursor-pointer hover:scale-105 duration-300"
             >
@@ -107,9 +149,9 @@ const Header: React.FC = () => {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3 group">
-              <img 
-                src={logo} 
-                alt="Mistri Online Logo" 
+              <img
+                src={logo}
+                alt="Mistri Online Logo"
                 className="h-14 w-auto transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
@@ -120,13 +162,18 @@ const Header: React.FC = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                  className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                     isActive(item.href)
                       ? 'text-primary bg-primary/10 font-semibold'
                       : 'text-foreground hover:text-primary hover:bg-primary/5'
                   }`}
                 >
                   {item.name}
+                  {item.href === '/messages' && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -135,13 +182,20 @@ const Header: React.FC = () => {
             <div className="hidden lg:flex items-center gap-3">
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 rounded-lg">
-                    <User className="w-4 h-4 text-primary" />
+                  <Link
+                    to="/edit-profile"
+                    className="flex items-center gap-2 px-3 py-2 bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors"
+                  >
+                    {user?.profileImage ? (
+                      <img src={user.profileImage} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                    ) : (
+                      <User className="w-4 h-4 text-primary" />
+                    )}
                     <span className="text-sm font-medium">{user?.name}</span>
                     <span className="text-xs bg-primary/20 px-2 py-0.5 rounded-full capitalize">
                       {user?.role}
                     </span>
-                  </div>
+                  </Link>
                   <Button
                     variant="outline"
                     size="sm"
@@ -191,24 +245,38 @@ const Header: React.FC = () => {
                   key={item.name}
                   to={item.href}
                   className={`block py-3 px-4 rounded-lg font-medium transition-all duration-300 ${
-                    isActive(item.href) 
-                      ? 'text-primary bg-primary/10 font-semibold' 
+                    isActive(item.href)
+                      ? 'text-primary bg-primary/10 font-semibold'
                       : 'text-foreground hover:bg-primary/5 hover:text-primary'
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
+                  {item.href === '/messages' && unreadCount > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               ))}
+
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 rounded-lg">
-                    <User className="w-4 h-4 text-primary" />
+                  <Link
+                    to="/edit-profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors"
+                  >
+                    {user?.profileImage ? (
+                      <img src={user.profileImage} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <User className="w-4 h-4 text-primary" />
+                    )}
                     <div>
                       <p className="text-sm font-medium">{user?.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
                     </div>
-                  </div>
+                  </Link>
                   <Button
                     variant="outline"
                     className="w-full hover:bg-destructive hover:text-destructive-foreground"

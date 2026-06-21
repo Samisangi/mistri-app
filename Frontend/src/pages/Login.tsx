@@ -34,7 +34,7 @@ const Login: React.FC = () => {
         description: "Welcome back to Mistri Ghar Tak",
       });
 
-      const storedUser = localStorage.getItem('currentUser');
+      const storedUser = sessionStorage.getItem('currentUser');
       if (storedUser) {
         const user = JSON.parse(storedUser);
         if (user.role === 'mistri') navigate('/mistri-dashboard');

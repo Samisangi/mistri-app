@@ -127,9 +127,12 @@ const GigDetail: React.FC = () => {
                 <CardTitle className="text-3xl mb-4">{gig.title}</CardTitle>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
+                      {gig.mistriId?.avatar ? (
+    <img src={gig.mistriId.avatar} alt={gig.mistriName} className="w-10 h-10 rounded-full object-cover" />
+  ) : (
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="font-semibold">{gig.mistriName?.charAt(0) || 'M'}</span>
-                    </div>
+                    </div>)}
                     <div>
                       <p className="font-semibold">{gig.mistriName}</p>
                       <div className="flex items-center gap-1">

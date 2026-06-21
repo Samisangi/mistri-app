@@ -30,9 +30,9 @@ exports.getMyOrders = async (req, res) => {
       : { mistriId: req.user._id };
 
     const orders = await Order.find(query)
-      .populate('gigId', 'title category images')
-      .populate('clientId', 'name phone')
-      .populate('mistriId', 'name phone')
+      .populate('gigId', 'title category images packages')
+      .populate('clientId', 'name phone email avatar')
+      .populate('mistriId', 'name phone email avatar')
       .sort({ createdAt: -1 });
 
     res.json(orders);
