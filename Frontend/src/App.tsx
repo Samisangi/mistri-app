@@ -7,7 +7,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ContactSupport from "./pages/ContactSupport";
-
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import EditGig from "./pages/EditGig";
@@ -85,6 +86,9 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/reset-password/:token" element={<ResetPassword />} />
+
                 <Route path="/edit-gig/:id" element={<ProtectedRoute allowedRoles={['mistri']}><EditGig /></ProtectedRoute>} />
 <Route path="/edit-profile" element={<EditProfile />} />
 

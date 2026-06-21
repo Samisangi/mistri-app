@@ -14,6 +14,7 @@ const Header: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
+  console.log('DEBUG - user role:', JSON.stringify(user?.role));
   const { toast } = useToast();
 
   useEffect(() => {
@@ -92,6 +93,8 @@ const Header: React.FC = () => {
         { name: '🛠️ Services', href: '/services' },
         { name: '💬 Messages', href: '/messages' },
         { name: '📦 Orders', href: '/orders' },
+        { name: '🆘 Support', href: '/contact-support' },
+        
       ];
     }
 

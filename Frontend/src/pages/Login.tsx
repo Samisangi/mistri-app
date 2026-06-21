@@ -183,6 +183,13 @@ const Login: React.FC = () => {
                   required
                 />
               </div>
+{isLogin && (
+    <div className="text-right">
+      <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+        Forgot Password?
+      </Link>
+    </div>)}
+              
             </div>
 
             <Button type="submit" className="w-full" size="lg">
