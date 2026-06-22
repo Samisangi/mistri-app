@@ -12,6 +12,8 @@ const ClientDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
+  const [myReviews, setMyReviews] = useState<any[]>([]);
+
   const [stats, setStats] = useState({
     activeOrders: 0,
     completedOrders: 0,
@@ -22,7 +24,7 @@ const ClientDashboard = () => {
   useEffect(() => {
     if (!user || user.role !== 'client') { navigate('/'); return; }
     loadDashboardData();
-  }, [user]);
+  }, [user, navigate]);
 
   const loadDashboardData = async () => {
     try {
@@ -35,6 +37,9 @@ const ClientDashboard = () => {
       const reviewsGiven = data.filter((o: any) => o.rating > 0).length;
 
       setStats({ activeOrders, completedOrders, totalSpent, reviewsGiven });
+
+      const { data: reviewsData } = await api.get(`/reviews/user/${user?.id}`);
+      setMyReviews(reviewsData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }
@@ -53,7 +58,6 @@ const ClientDashboard = () => {
 
   const activeOrdersList = orders.filter(o => ['pending', 'active', 'delivered', 'revision'].includes(o.status));
   const completedOrdersList = orders.filter(o => o.status === 'completed');
-
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
@@ -116,6 +120,7 @@ const ClientDashboard = () => {
           <TabsList>
             <TabsTrigger value="active">Active Orders</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews ({myReviews.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
@@ -187,6 +192,48 @@ const ClientDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="space-y-4">
+            <h2 className="text-2xl font-semibold">Mistri Reviews About You</h2>
+
+            {myReviews.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
+                  <p className="text-muted-foreground">Reviews from mistris will appear here</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {myReviews.map((review) => (
+                  <Card key={review._id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        {review.reviewerId?.avatar ? (
+                          <img src={review.reviewerId.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
+                            {review.reviewerName?.[0] || 'M'}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{review.reviewerName}</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

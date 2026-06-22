@@ -79,6 +79,7 @@ const Header: React.FC = () => {
 
     if (user.role === 'mistri') {
       return [
+
         { name: '💼 Dashboard', href: '/mistri-dashboard' },
         { name: '💬 Messages', href: '/messages' },
         { name: '📦 Orders', href: '/orders' },
@@ -89,6 +90,8 @@ const Header: React.FC = () => {
 
     if (user.role === 'client') {
       return [
+            { name: '📊 Dashboard', href: '/client-dashboard' },
+
         { name: '🔍 Find Mistris', href: '/gigs' },
         { name: '🛠️ Services', href: '/services' },
         { name: '💬 Messages', href: '/messages' },

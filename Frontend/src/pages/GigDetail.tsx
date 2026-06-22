@@ -16,7 +16,22 @@ const GigDetail: React.FC = () => {
   const { toast } = useToast();
   const [gig, setGig] = useState<any>(null);
   const [selectedPackage, setSelectedPackage] = useState<'basic' | 'standard' | 'premium'>('basic');
+const [reviews, setReviews] = useState<any[]>([]);
 
+useEffect(() => {
+  if (gig?._id) {
+    loadReviews();
+  }
+}, [gig]);
+
+const loadReviews = async () => {
+  try {
+    const { data } = await api.get(`/reviews/gig/${gig._id}`);
+    setReviews(data);
+  } catch (error) {
+    console.error('Error loading reviews:', error);
+  }
+};
   useEffect(() => {
     loadGig();
   }, [id]);
@@ -151,14 +166,49 @@ const GigDetail: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  {gig.reviews === 0 ? 'No reviews yet. Be the first to order!' : 'Reviews will appear here'}
-                </p>
-              </CardContent>
-            </Card>
+           <Card>
+  <CardHeader>
+    <CardTitle>Reviews ({reviews.length})</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {reviews.length === 0 ? (
+      <p className="text-muted-foreground text-center py-8">
+        No reviews yet. Be the first to order!
+      </p>
+    ) : (
+      <div className="space-y-4">
+        {reviews.map((review) => (
+          <div key={review._id} className="border-b pb-4 last:border-0">
+            <div className="flex items-center gap-3 mb-2">
+              {review.reviewerId?.avatar ? (
+                <img src={review.reviewerId.avatar} alt={review.reviewerName} className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
+                  {review.reviewerName?.[0] || 'U'}
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-sm">{review.reviewerName}</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-3 h-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {new Date(review.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+          </div>
+        ))}
+      </div>
+    )}
+  </CardContent>
+</Card>
           </div>
 
           {/* Sidebar */}

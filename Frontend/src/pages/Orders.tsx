@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Package, Clock, MessageSquare, Upload, Check, AlertCircle } from 'lucide-react';
+import { Package, Clock, MessageSquare, Upload, Check, AlertCircle, Star} from 'lucide-react';
 import api from '@/lib/api';
 
 const Orders: React.FC = () => {
@@ -33,7 +33,19 @@ const Orders: React.FC = () => {
     } catch (error) {
       console.error('Error loading orders:', error);
     }
-  };
+  };const handleSubmitReview = async (orderId: string, rating: number, comment: string) => {
+  try {
+    await api.post('/reviews', { orderId, rating, comment });
+    toast({ title: "Review Submitted!", description: "Thank you for your feedback" });
+    loadOrders();
+  } catch (error: any) {
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to submit review",
+      variant: "destructive"
+    });
+  }
+};
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -51,6 +63,7 @@ const Orders: React.FC = () => {
     if (success) toast({ title: "Order Confirmed!", description: "You can now start working on this order" });
   };
 
+  
   const handleDeliverOrder = async (orderId: string, deliveryNote: string) => {
     const success = await updateOrderStatus(orderId, 'delivered');
     if (success) toast({ title: "Work Delivered!", description: "Waiting for client approval" });
@@ -148,6 +161,8 @@ const Orders: React.FC = () => {
                   onApprove={handleApproveDelivery}
                   onRevision={handleRequestRevision}
                   onCancel={handleCancelOrder}
+                      onReview={handleSubmitReview}
+
                   getStatusColor={getStatusColor}
                 />
               ))
@@ -167,14 +182,27 @@ const OrderCard: React.FC<{
   onApprove: (id: string) => void;
   onRevision: (id: string) => void;
   onCancel: (id: string) => void;
+    onReview: (id: string, rating: number, comment: string) => void;
+
   getStatusColor: (status: string) => string;
-}> = ({ order, isMistri, onAccept, onDeliver, onApprove, onRevision, onCancel, getStatusColor }) => {
+}> = ({ order, isMistri, onAccept, onDeliver, onApprove, onRevision, onCancel, onReview, getStatusColor }) => {
   const navigate = useNavigate();
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [deliveryNote, setDeliveryNote] = useState('');
   const [revisionNote, setRevisionNote] = useState('');
-
+   const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [hasReviewed, setHasReviewed] = useState(false);
+ useEffect(() => {
+    if (order.status === 'completed') {
+      api.get(`/reviews/check/${order._id}`).then(({ data }) => {
+        setHasReviewed(data.hasReviewed);
+      }).catch(() => {});
+    }
+  }, [order._id, order.status]);
   return (
     <Card>
       <CardContent className="p-6">
@@ -228,6 +256,20 @@ const OrderCard: React.FC<{
             )}
 
             {/* Actions */}
+            {/* Leave Review - for completed orders not yet reviewed */}
+{order.status === 'completed' && !hasReviewed && !showReviewForm && (
+  <Button onClick={() => setShowReviewForm(true)} size="sm" variant="outline">
+    <Star className="w-4 h-4 mr-1" />
+    Leave a Review
+  </Button>
+)}
+
+{order.status === 'completed' && hasReviewed && (
+  <Badge variant="outline" className="flex items-center gap-1">
+    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+    Reviewed
+  </Badge>
+)}
             <div className="flex flex-wrap gap-3">
               {/* Mistri: Confirm pending order */}
               {isMistri && order.status === 'pending' && (
@@ -313,6 +355,53 @@ const OrderCard: React.FC<{
                 </div>
               </div>
             )}
+            {/* Review Form */}
+{showReviewForm && (
+  <div className="bg-muted p-4 rounded-lg space-y-3">
+    <div>
+      <p className="text-sm font-semibold mb-2">
+        Rate your experience with {isMistri ? order.clientId?.name : order.mistriId?.name}:
+      </p>
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => setReviewRating(star)}
+            className="focus:outline-none"
+          >
+            <Star
+              className={`w-8 h-8 cursor-pointer ${star <= reviewRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+    <Textarea
+      placeholder="Share your experience working with them..."
+      value={reviewComment}
+      onChange={(e) => setReviewComment(e.target.value)}
+      rows={3}
+    />
+    <div className="flex gap-2">
+      <Button
+        onClick={() => {
+          onReview(order._id, reviewRating, reviewComment);
+          setShowReviewForm(false);
+          setHasReviewed(true);
+          setReviewComment('');
+          setReviewRating(5);
+        }}
+        size="sm"
+      >
+        Submit Review
+      </Button>
+      <Button onClick={() => setShowReviewForm(false)} size="sm" variant="outline">
+        Cancel
+      </Button>
+    </div>
+  </div>
+)}
 
             {/* Revision Form */}
             {showRevisionForm && (

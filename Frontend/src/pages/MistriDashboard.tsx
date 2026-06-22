@@ -20,6 +20,8 @@ import api from '@/lib/api';
 const MistriDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [myReviews, setMyReviews] = useState<any[]>([]);
+
   const [gigs, setGigs] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -43,7 +45,8 @@ const MistriDashboard: React.FC = () => {
       // Load mistri's gigs from API
       const { data: myGigs } = await api.get('/gigs/my');
       setGigs(myGigs);
-
+const { data: reviewsData } = await api.get(`/reviews/user/${user?.id}`);
+setMyReviews(reviewsData);
       // Load mistri's orders from API
       const { data: myOrders } = await api.get('/orders/my');
       setOrders(myOrders);
@@ -153,7 +156,10 @@ const MistriDashboard: React.FC = () => {
             <TabsTrigger value="orders">Orders ({orders.length})</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
-
+<TabsList>
+  <TabsTrigger value="gigs">My Services ({gigs.length})</TabsTrigger>
+  <TabsTrigger value="reviews">Reviews ({myReviews.length})</TabsTrigger>
+</TabsList>
           {/* Gigs Tab */}
           <TabsContent value="gigs" className="space-y-4">
             <div className="flex justify-between items-center">
@@ -314,6 +320,47 @@ const MistriDashboard: React.FC = () => {
               </Card>
             </div>
           </TabsContent>
+          <TabsContent value="reviews" className="space-y-4">
+  <h2 className="text-2xl font-semibold">Client Reviews</h2>
+
+  {myReviews.length === 0 ? (
+    <Card>
+      <CardContent className="p-12 text-center">
+        <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
+        <p className="text-muted-foreground">Reviews from clients will appear here</p>
+      </CardContent>
+    </Card>
+  ) : (
+    <div className="space-y-4">
+      {myReviews.map((review) => (
+        <Card key={review._id}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              {review.reviewerId?.avatar ? (
+                <img src={review.reviewerId.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
+                  {review.reviewerName?.[0] || 'C'}
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="font-semibold text-sm">{review.reviewerName}</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                  ))}
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</span>
+            </div>
+            {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )}
+</TabsContent>
         </Tabs>
       </div>
     </div>
