@@ -2,10 +2,13 @@ const router = require('express').Router();
 const { protect } = require('../middleware/auth');
 const ctrl = require('../controllers/orderController');
 
-router.put('/:id/cancel', protect, ctrl.cancelOrder);
 router.post('/', protect, ctrl.createOrder);
 router.get('/my', protect, ctrl.getMyOrders);
+router.get('/:id', protect, ctrl.getOrderById);
 router.put('/:id/status', protect, ctrl.updateOrderStatus);
+router.put('/:id/cancel', protect, ctrl.cancelOrder);
+
+
 // Add this route for inquiry/contact
 router.post('/inquiry', protect, async (req, res) => {
   try {

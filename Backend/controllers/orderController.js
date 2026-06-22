@@ -1,6 +1,29 @@
 const Order = require('../models/Order');
 const Gig = require('../models/Gig');
 
+
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('gigId', 'title category images packages description')
+      .populate('clientId', 'name phone email avatar')
+      .populate('mistriId', 'name phone email avatar');
+
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const isClient = order.clientId._id.toString() === req.user._id.toString();
+    const isMistri = order.mistriId._id.toString() === req.user._id.toString();
+
+    if (!isClient && !isMistri && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.createOrder = async (req, res) => {
   try {
     const { gigId, address, notes } = req.body;
