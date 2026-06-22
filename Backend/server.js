@@ -31,6 +31,7 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/complaints', require('./routes/complaints'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 // Socket.IO
 io.on('connection', (socket) => {
