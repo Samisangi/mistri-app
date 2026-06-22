@@ -147,8 +147,8 @@ const ClientDashboard = () => {
                             <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
                           </div>
                           <div className="flex gap-2 mt-3">
-                            <Button onClick={() => navigate('/orders')} size="sm">View Details</Button>
-                            <Button onClick={() => navigate('/messages')} variant="outline" size="sm">Message Mistri</Button>
+                            <Button onClick={() => navigate(`/order/${order._id}`)} size="sm">View Details</Button>
+                            <Button onClick={() => navigate(`/messages?orderId=${order._id}`)} variant="outline" size="sm">Message Mistri</Button>
                           </div>
                         </div>
                         <div className="text-right">

@@ -157,7 +157,6 @@ setMyReviews(reviewsData);
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
 <TabsList>
-  <TabsTrigger value="gigs">My Services ({gigs.length})</TabsTrigger>
   <TabsTrigger value="reviews">Reviews ({myReviews.length})</TabsTrigger>
 </TabsList>
           {/* Gigs Tab */}
@@ -260,11 +259,11 @@ setMyReviews(reviewsData);
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => navigate( '/messages ')}>
-                            <MessageSquare className="w-4 h-4 mr-1" />
-                            Message
-                          </Button>
-                          <Button size="sm">View Details</Button>
+                         <Button size="sm" variant="outline" onClick={() => navigate(`/messages?orderId=${order._id}`)}>
+  <MessageSquare className="w-4 h-4 mr-1" />
+  Message
+</Button>
+<Button size="sm" onClick={() => navigate(`/order/${order._id}`)}>View Details</Button>
                         </div>
                       </div>
                     </CardContent>
