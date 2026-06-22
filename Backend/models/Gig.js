@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 
+const packageSchema = {
+  price: { type: Number },
+  deliveryDays: { type: Number },
+  description: { type: String }
+};
+
 const gigSchema = new mongoose.Schema({
   mistriId: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -16,11 +22,9 @@ const gigSchema = new mongoose.Schema({
   description: { type: String, required: true },
   images: [String],
   packages: {
-    basic: {
-      price: { type: Number, required: true },
-      deliveryDays: { type: Number, required: true },
-      description: { type: String }
-    }
+    basic: packageSchema,
+    standard: packageSchema,
+    premium: packageSchema
   },
   rating: { type: Number, default: 0 },
   reviews: { type: Number, default: 0 },

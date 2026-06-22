@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Briefcase, 
@@ -20,8 +21,9 @@ import api from '@/lib/api';
 const MistriDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [myReviews, setMyReviews] = useState<any[]>([]);
+  const { toast } = useToast();
 
+  const [myReviews, setMyReviews] = useState<any[]>([]);
   const [gigs, setGigs] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -42,16 +44,15 @@ const MistriDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Load mistri's gigs from API
       const { data: myGigs } = await api.get('/gigs/my');
       setGigs(myGigs);
-const { data: reviewsData } = await api.get(`/reviews/user/${user?.id}`);
-setMyReviews(reviewsData);
-      // Load mistri's orders from API
+
+      const { data: reviewsData } = await api.get(`/reviews/user/${user?.id}`);
+      setMyReviews(reviewsData);
+
       const { data: myOrders } = await api.get('/orders/my');
       setOrders(myOrders);
 
-      // Calculate stats
       const activeOrders = myOrders.filter((o: any) =>
         o.status === 'active' || o.status === 'pending'
       ).length;
@@ -82,6 +83,22 @@ setMyReviews(reviewsData);
       case 'completed': return 'bg-green-500';
       case 'cancelled': return 'bg-red-500';
       default: return 'bg-gray-500';
+    }
+  };
+
+  const handleDeleteGig = async (gigId: string) => {
+    if (!confirm('Are you sure you want to delete this service? This cannot be undone.')) return;
+
+    try {
+      await api.delete(`/gigs/${gigId}`);
+      toast({ title: "Service Deleted", description: "Your service has been removed" });
+      loadDashboardData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to delete service",
+        variant: "destructive"
+      });
     }
   };
 
@@ -155,10 +172,9 @@ setMyReviews(reviewsData);
             <TabsTrigger value="gigs">My Services ({gigs.length})</TabsTrigger>
             <TabsTrigger value="orders">Orders ({orders.length})</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews ({myReviews.length})</TabsTrigger>
           </TabsList>
-<TabsList>
-  <TabsTrigger value="reviews">Reviews ({myReviews.length})</TabsTrigger>
-</TabsList>
+
           {/* Gigs Tab */}
           <TabsContent value="gigs" className="space-y-4">
             <div className="flex justify-between items-center">
@@ -209,11 +225,16 @@ setMyReviews(reviewsData);
                           <span>Starting at {gig.packages.basic.price} PKR</span>
                         </div>
                         <div className="flex gap-2 mt-4">
-<Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/edit-gig/${gig._id}`)}>
-  Edit</Button>
-<Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/gig/${gig._id}`)}>
-    View
-  </Button>                        </div>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/edit-gig/${gig._id}`)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/gig/${gig._id}`)}>
+                            View
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteGig(gig._id)}>
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -259,11 +280,11 @@ setMyReviews(reviewsData);
                           </div>
                         </div>
                         <div className="flex gap-2">
-                         <Button size="sm" variant="outline" onClick={() => navigate(`/messages?orderId=${order._id}`)}>
-  <MessageSquare className="w-4 h-4 mr-1" />
-  Message
-</Button>
-<Button size="sm" onClick={() => navigate(`/order/${order._id}`)}>View Details</Button>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/messages?orderId=${order._id}`)}>
+                            <MessageSquare className="w-4 h-4 mr-1" />
+                            Message
+                          </Button>
+                          <Button size="sm" onClick={() => navigate(`/order/${order._id}`)}>View Details</Button>
                         </div>
                       </div>
                     </CardContent>
@@ -319,47 +340,49 @@ setMyReviews(reviewsData);
               </Card>
             </div>
           </TabsContent>
-          <TabsContent value="reviews" className="space-y-4">
-  <h2 className="text-2xl font-semibold">Client Reviews</h2>
 
-  {myReviews.length === 0 ? (
-    <Card>
-      <CardContent className="p-12 text-center">
-        <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
-        <p className="text-muted-foreground">Reviews from clients will appear here</p>
-      </CardContent>
-    </Card>
-  ) : (
-    <div className="space-y-4">
-      {myReviews.map((review) => (
-        <Card key={review._id}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              {review.reviewerId?.avatar ? (
-                <img src={review.reviewerId.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
-                  {review.reviewerName?.[0] || 'C'}
-                </div>
-              )}
-              <div className="flex-1">
-                <p className="font-semibold text-sm">{review.reviewerName}</p>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                  ))}
-                </div>
+          {/* Reviews Tab */}
+          <TabsContent value="reviews" className="space-y-4">
+            <h2 className="text-2xl font-semibold">Client Reviews</h2>
+
+            {myReviews.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
+                  <p className="text-muted-foreground">Reviews from clients will appear here</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {myReviews.map((review) => (
+                  <Card key={review._id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        {review.reviewerId?.avatar ? (
+                          <img src={review.reviewerId.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-semibold">
+                            {review.reviewerName?.[0] || 'C'}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{review.reviewerName}</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</span>
-            </div>
-            {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )}
-</TabsContent>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </div>
