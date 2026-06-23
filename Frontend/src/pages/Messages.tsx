@@ -21,7 +21,6 @@ const Messages = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [unreadByOrder, setUnreadByOrder] = useState<Record<string, number>>({});
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -37,9 +36,16 @@ const Messages = () => {
     };
   }, [user]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  if (chatContainerRef.current) {
+    chatContainerRef.current.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+}, [messages]);
 
   useEffect(() => {
     if (orderId && conversations.length > 0) {
@@ -193,28 +199,27 @@ const Messages = () => {
                   </div>
                 </div>
 
-                <div className="flex-1 p-4 overflow-y-auto bg-muted/20">
-                  <div className="space-y-4">
-                    {messages.map((msg, i) => {
-                      const isOwn = msg.senderId === user?.id || msg.senderId?._id === user?.id;
-                      return (
-                        <div key={i} className={`flex gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                          {!isOwn && (
-                            <Avatar className="w-6 h-6 mt-1">
-                              {selectedConversation?.otherUser?.avatar && <AvatarImage src={selectedConversation.otherUser.avatar} />}
-                              <AvatarFallback className="text-xs">{selectedConversation?.otherUser?.name?.[0] || '?'}</AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className={`max-w-[70%] rounded-lg p-3 ${isOwn ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
-                            <p className="text-sm">{msg.content}</p>
-                            <p className="text-xs opacity-70 mt-1">{formatTime(msg.createdAt)}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </div>
+                <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto bg-muted/20">
+  <div className="space-y-4">
+    {messages.map((msg, i) => {
+      const isOwn = msg.senderId === user?.id || msg.senderId?._id === user?.id;
+      return (
+        <div key={i} className={`flex gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          {!isOwn && (
+            <Avatar className="w-6 h-6 mt-1">
+              {selectedConversation?.otherUser?.avatar && <AvatarImage src={selectedConversation.otherUser.avatar} />}
+              <AvatarFallback className="text-xs">{selectedConversation?.otherUser?.name?.[0] || '?'}</AvatarFallback>
+            </Avatar>
+          )}
+          <div className={`max-w-[70%] rounded-lg p-3 ${isOwn ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+            <p className="text-sm">{msg.content}</p>
+            <p className="text-xs opacity-70 mt-1">{formatTime(msg.createdAt)}</p>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
 
                 <div className="p-4 border-t flex gap-2">
                   <Input
