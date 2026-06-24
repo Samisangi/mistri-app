@@ -49,7 +49,7 @@ const Header: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const socket = io('http://localhost:5000');
+    const socket = io(import.meta.env.VITE_API_URL);
     socket.emit('join_room', user.id);
 
     socket.on('new_message_notification', (data: any) => {
