@@ -271,7 +271,7 @@ const Services: React.FC = () => {
             <Button size="lg" className="bg-white text-destructive hover:bg-gray-100">
               Call Emergency: 03061217691
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-destructive">
+           <Button size="lg" className="bg-white text-destructive hover:bg-gray-100">
               WhatsApp Emergency
             </Button>
           </div>

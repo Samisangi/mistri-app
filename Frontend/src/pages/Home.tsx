@@ -177,8 +177,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Create Account Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="container mx-auto px-4">
+<section className="py-16 bg-gradient-to-r from-primary to-primary-dark text-white">        <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               {/* Client Signup */}
@@ -210,7 +209,7 @@ const Home: React.FC = () => {
                     </li>
                   </ul>
                   <Link to="/login">
-                    <Button size="lg" className="w-full bg-white text-blue-600 hover:bg-gray-100 font-semibold">
+                    <Button size="lg" className="w-full bg-white text-primary hover:bg-gray-100 font-semibold">
                       Sign Up as Client
                     </Button>
                   </Link>
@@ -246,9 +245,9 @@ const Home: React.FC = () => {
                     </li>
                   </ul>
                   <Link to="/login">
-                    <Button size="lg" className="w-full bg-white text-purple-600 hover:bg-gray-100 font-semibold">
-                      Sign Up as Mistri
-                    </Button>
+                    <Button size="lg" className="w-full bg-white text-primary hover:bg-gray-100 font-semibold">
+  Sign Up as Mistri
+</Button>
                   </Link>
                 </CardContent>
               </Card>
@@ -323,10 +322,7 @@ const Home: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/workers">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 px-10 py-6 text-xl shadow-2xl">
-                <Star className="w-5 h-5 mr-2" />
-                Browse All Workers
-              </Button>
+              
             </Link>
             <Link to="/contact">
               <Button 

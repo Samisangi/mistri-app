@@ -14,59 +14,8 @@ import {
   Shield,
   UserCircle
 } from 'lucide-react';
-import majidImage from '@/components/ui/Team/majid.png';
-import samiImage from '@/components/ui/Team/Sami-prof.png';
-import haneefImage from '@/components/ui/Team/haneef.png';
-import meerImage from '@/components/ui/Team/meer.jpeg';
-import sherryImage from '@/components/ui/Team/sherry.png';
-import saadImage from '@/components/ui/Team/saad.jpeg';
 
 const About: React.FC = () => {
-  const teamMembers = [
-    {
-      name: 'Majid Ali Khokhar',
-      role: 'CEO & Founder',
-      description: 'Experienced entrepreneur passionate about connecting skilled mistris with customers',
-      expertise: 'Business Strategy, Operations',
-      image: majidImage
-    },
-    {
-      name: 'Sami Ullah Sangi', 
-      role: 'Head of Operations',
-      description: 'Ensuring quality service delivery and customer satisfaction across Sukkur',
-      expertise: 'Service Quality, Customer Relations',
-      image: samiImage
-    },
-    {
-      name: 'Muhammad Haneef',
-      role: 'Technical Lead',
-      description: 'Managing our network of verified mistris and service standards',
-      expertise: 'Technical Operations, Quality Control',
-      image: haneefImage
-    },
-    {
-      name: 'Meer Zaib Jagirani',
-      role: 'Customer Success Manager',
-      description: 'Dedicated to providing exceptional customer support and experience',
-      expertise: 'Customer Support, Process Improvement',
-      image: meerImage
-    },
-    {
-      name: 'Shehryar Gopang',
-      role: 'Finance Manager',
-      description: 'Managing financial operations and ensuring sustainable business growth through transparent fiscal management',
-      expertise: 'Financial Planning, Budgeting, Analysis',
-      image: sherryImage
-    },
-    {
-      name: 'Saad Ahmed',
-      role: 'Marketing Head',
-      description: 'Driving brand awareness and customer acquisition through strategic marketing initiatives and digital campaigns',
-      expertise: 'Digital Marketing, Brand Strategy, Growth',
-      image: saadImage
-    }
-  ];
-
   const milestones = [
     {
       year: '2024',
@@ -225,61 +174,6 @@ const About: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-semibold mb-3">{value.title}</h3>
                   <p className="text-muted-foreground text-sm">{value.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-20 bg-gradient-to-b from-background to-background-alt">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-fade-in-up">
-            <Badge variant="outline" className="mb-4">
-              Our Team
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Meet the People Behind
-              <span className="text-gradient-primary block">Mistri Online</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              A dedicated team working to revolutionize home repair services in Pakistan
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
-              <Card key={index} className="feature-card text-center group hover-lift" style={{animationDelay: `${index * 0.1}s`}}>
-                <CardContent className="p-8">
-                  <div className="relative mb-6">
-                    <div className="w-32 h-32 mx-auto rounded-full overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110 border-4 border-primary/20">
-                      <img 
-                        src={member.image} 
-                        alt={member.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-secondary text-secondary-foreground shadow-md">
-                        {member.role}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-xl font-bold mb-4 mt-4">{member.name}</h3>
-                  
-                  <div className="bg-background-alt rounded-lg p-4 mb-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">{member.description}</p>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {member.expertise.split(',').map((skill, skillIndex) => (
-                      <Badge key={skillIndex} variant="outline" className="text-xs">
-                        {skill.trim()}
-                      </Badge>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
             ))}
