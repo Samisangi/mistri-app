@@ -7,8 +7,7 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 dotenv.config();
-console.log('EMAIL_USER loaded:', process.env.EMAIL_USER);
-console.log('EMAIL_PASS loaded:', process.env.EMAIL_PASS ? 'YES (hidden)' : 'NO - MISSING');
+
 connectDB();
 
 const app = express();
