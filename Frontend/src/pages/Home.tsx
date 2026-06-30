@@ -110,12 +110,11 @@ const Home: React.FC = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section 
-        className="relative h-[90vh] flex items-center justify-center text-center gradient-overlay overflow-hidden"
+        className="relative min-h-[90vh] py-12 flex items-center justify-center text-center gradient-overlay overflow-hidden"
         style={{
           backgroundImage: `url(${heroImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
         }}
       >
         {/* Animated Background Shapes */}
@@ -126,7 +125,7 @@ const Home: React.FC = () => {
 
         <div className="container mx-auto px-4 z-10 animate-fade-in-up">
           <div className="max-w-4xl mx-auto space-y-8">
-            <Badge variant="secondary" className="mb-4 px-6 py-2 text-lg animate-scale-in backdrop-blur-sm">
+            <Badge variant="secondary" className="mb-4 px-4 py-2 text-sm sm:text-base md:text-lg sm:px-6 animate-scale-in backfrop-blur-sm whitespace-nowrap sm:whitespace-normal">
               🏠 Home & Office Repair Services
             </Badge>
             
